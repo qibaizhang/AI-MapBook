@@ -7,6 +7,9 @@ from streamlit_folium import st_folium
 import folium
 import time
 
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv())    # read local .env file
+
 # 使用session_state来保存用户名
 if 'username' not in st.session_state:
     st.session_state.username = "qianyouliang"
