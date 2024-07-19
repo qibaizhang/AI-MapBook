@@ -346,6 +346,7 @@ app.layout = html.Div(
 )
 def parse_button(nClicks, lastUploadTaskRecord):
     print(lastUploadTaskRecord)
+    print(generate_random_string(10))
     if nClicks: 
         if lastUploadTaskRecord:
             try:
@@ -362,6 +363,32 @@ def parse_button(nClicks, lastUploadTaskRecord):
                     print(text)
                 geo_info_list = file_processor.process_text(text)
                 print(geo_info_list)
+                features = []
+                locations = []
+                for info in geo_info_list:
+                    geocode_result = geocode_utils.geocode(info["address"])
+                    print('坐标为:', info["address"], geocode_result)
+                    if 'error' not in geocode_result:
+                        feature = {
+                            "type": "Feature",
+                            "properties": {
+                                "description": {
+                                    "title": info["event_title"],
+                                    "type": info["event_type"],
+                                    "content": info["event_content"],
+                                    "keys": info["keys"],
+                                }
+                            },
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [geocode_result["longitude"], geocode_result["latitude"]]
+                            }
+                        }
+                        locations.append([geocode_result["latitude"], geocode_result["longitude"]])
+                        print(locations)
+                        print(feature, "点位数据")
+                        features.append(feature)                        
+                        print(features)
             except Exception as e:
                 print(e)
                 return [
