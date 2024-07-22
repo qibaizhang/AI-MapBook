@@ -4,6 +4,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
+import uuid
 import time
 from io import BytesIO
 from utils.geocode_utils import GeocodeUtils
@@ -71,6 +72,12 @@ file_processor = FileProcessor()
 
 app.layout = html.Div(
     [
+        dcc.Store(
+            id='mapinfo-store'
+        ),        
+        dcc.Store(
+            id='geojson-store'
+        ),        
         # 注入问题返回状态消息提示
         html.Div(
             id='response-status-message'
@@ -101,18 +108,78 @@ app.layout = html.Div(
                     [
                         # 添加瓦片底图
                         flc.LeafletTileLayer(
+                            id='tile-layer',
                             url='https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
-                        )
+                        ),
+                        # flc.LeafletFullscreenControl(
+                        # ),                        
                     ],
                     id='map-container',
-                    zoomControl=False,  # 隐藏自带的放大缩小控件
+                    # zoomControl=True,  # 隐藏自带的放大缩小控件
+                    # editToolbar=True,
                     style={
                         'position': 'absolute',
-                        'width': '100%',
-                        'height': '100%'
+                        'width': 'calc(100vw - 800px)',
+                        'height': 'calc(100vh - 64px)',
+                        # 'top': 64,
+                        'left': 400,                        
                     }
                 ),
+                
 
+                
+                # 在地图实例相同的相对容器内放入图层切换器
+                flc.LeafletTileSelect(
+                    id='tile-select',
+                    selectedUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urls=[
+                        {
+                            'url': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/img/{z}/{x}/{y}?format=webp&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/cia/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/ter/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/cat/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
+                        },
+                        {
+                            'url': 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}'
+                        },
+                        {
+                            'url': 'http://t0.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=dc583530609f195b53cf2773de8beae0'
+                        },
+                        {
+                            'url': 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+                        },
+                        {
+                            'url': 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+                        },
+                        {
+                            'url': 'https://d.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'
+                        }
+                    ],
+                    # zoom=7,
+                    containerVisible=False,
+                    style={
+                        'position': 'absolute',
+                        'width': 'calc(100vw - 400px)',
+                        'height': 'calc(100vh - 64px)',
+                        # 'top': 64,
+                        # 'right': 400,                        
+                    }                    
+                ),
                 # 风格一折叠按钮，对应左侧面板
                 html.Span(
                     fac.AntdIcon(
@@ -162,23 +229,40 @@ app.layout = html.Div(
                                                 'maxHeight': '500px'
                                             }
                                         ),
-                                        fac.AntdCenter(
-                                            fac.AntdButton(
-                                                [
-                                                    # fac.AntdIcon(
-                                                    #     icon='md-fingerprint'
-                                                    # ),
-                                                    '解析文档'
-                                                ],
-                                                id="start-parse-button",
-                                                type='primary',
-                                                loadingChildren='解析中',
-                                                autoSpin=True                                                
-                                            ),
-                                            style={
-                                                'padding': '10px',
-                                            }
-                                        ),                                        
+                                        # fac.AntdCenter(
+                                        #     fac.AntdButton(
+                                        #         [
+                                        #             # fac.AntdIcon(
+                                        #             #     icon='md-fingerprint'
+                                        #             # ),
+                                        #             '解析文档'
+                                        #         ],
+                                        #         id="start-parse-button",
+                                        #         type='primary',
+                                        #         loadingChildren='解析中',
+                                        #         autoSpin=True                                                
+                                        #     ),
+                                        #     style={
+                                        #         'padding': '10px',
+                                        #     }
+                                        # ),                                        
+                                        # fac.AntdCenter(
+                                        #     fac.AntdButton(
+                                        #         [
+                                        #             # fac.AntdIcon(
+                                        #             #     icon='md-fingerprint'
+                                        #             # ),
+                                        #             '生成地图'
+                                        #         ],
+                                        #         id="start-map-button",
+                                        #         type='primary',
+                                        #         loadingChildren='生成中',
+                                        #         autoSpin=True                                                
+                                        #     ),
+                                        #     style={
+                                        #         'padding': '10px',
+                                        #     }
+                                        # ),                                        
 
                                     ],
                                     style={
@@ -203,30 +287,44 @@ app.layout = html.Div(
                             #     'alignItems': 'center'
                             # }
                         ),
+
                     
 
-                        # # 受左侧面板折叠影响位置的悬浮工具条，利用绝对定位与左侧面板绑定
-                        # fac.AntdSpace(
-                        #     [
-                        #         fac.AntdButton(
-                        #             [
-                        #                 fac.AntdIcon(
-                        #                     icon='antd-zoom-in',
-                        #                     style={
-                        #                         'paddingRight': '5px'
-                        #                     }
-                        #                 ),
-                        #                 '操作XX'
-                        #             ]
-                        #         )
-                        #     ] * 5,
-                        #     size=0,
-                        #     style={
-                        #         'position': 'absolute',
-                        #         'top': 0,
-                        #         'left': 'calc(100% + 10px)'
-                        #     }
-                        # )
+                        # 受左侧面板折叠影响位置的悬浮工具条，利用绝对定位与左侧面板绑定
+                        fac.AntdSpace(
+                            [
+                                fac.AntdButton(
+                                    [
+                                        # fac.AntdIcon(
+                                        #     icon='md-fingerprint'
+                                        # ),
+                                        '解析文档'
+                                    ],
+                                    id="start-parse-button",
+                                    type='primary',
+                                    loadingChildren='解析中',
+                                    autoSpin=True                                                
+                                ),
+                                fac.AntdButton(
+                                    [
+                                        # fac.AntdIcon(
+                                        #     icon='md-fingerprint'
+                                        # ),
+                                        '生成地图'
+                                    ],
+                                    id="start-map-button",
+                                    type='primary',
+                                    loadingChildren='生成中',
+                                    autoSpin=True                                                
+                                ),                                            
+                            ],
+                            size=10,
+                            style={
+                                'position': 'absolute',
+                                'top': 0,
+                                'left': 'calc(100% + 10px)'
+                            }
+                        )
                     ],
                     id='left-panel',
                     style={
@@ -265,6 +363,37 @@ app.layout = html.Div(
                             ),
                             
                             html.Div(id='right-content'),
+
+                            html.Div(
+                                fuc.FefferyJsonViewer(
+                                    id='json-geoinfo-viewer',
+                                    data={
+                                        'int示例': 999,
+                                        'float示例': 0.999,
+                                        'string示例': '我爱dash',
+                                        '数组示例': [0, 1, 2, 3],
+                                        '字典示例': {
+                                            'a': 1,
+                                            'b': 2,
+                                            'c': 3
+                                        }
+                                    },
+                                    editable=True,
+                                    addible=True,
+                                    deletable=True,
+                                    style={
+                                        'padding': '10px',
+                                        'maxHeight': '700px',
+                                        'overflow': 'auto',
+                                        'background': 'rgba(255, 255, 255, 0.8)',
+                                    }                                  
+                                ),
+                                style={
+                                    'padding': '30px 20px',
+                                    'background': 'rgba(255, 255, 255, 0.8)',
+                                    # 'maxHeight': '600px',
+                                }                            
+                            ),                            
 
 
                             # fac.AntdResult(
@@ -339,14 +468,15 @@ app.layout = html.Div(
 
 @app.callback(
     [Output('start-parse-button', 'loading'), 
-     Output('succes-result1', 'children')], 
+     Output('succes-result1', 'children'),
+     Output('json-geoinfo-viewer', 'data')
+     ], 
     Input('start-parse-button', 'nClicks'),
     State('upload', 'lastUploadTaskRecord'),
     prevent_initial_call=True
 )
 def parse_button(nClicks, lastUploadTaskRecord):
     print(lastUploadTaskRecord)
-    print(generate_random_string(10))
     if nClicks: 
         if lastUploadTaskRecord:
             try:
@@ -363,32 +493,13 @@ def parse_button(nClicks, lastUploadTaskRecord):
                     print(text)
                 geo_info_list = file_processor.process_text(text)
                 print(geo_info_list)
-                features = []
-                locations = []
-                for info in geo_info_list:
-                    geocode_result = geocode_utils.geocode(info["address"])
-                    print('坐标为:', info["address"], geocode_result)
-                    if 'error' not in geocode_result:
-                        feature = {
-                            "type": "Feature",
-                            "properties": {
-                                "description": {
-                                    "title": info["event_title"],
-                                    "type": info["event_type"],
-                                    "content": info["event_content"],
-                                    "keys": info["keys"],
-                                }
-                            },
-                            "geometry": {
-                                "type": "Point",
-                                "coordinates": [geocode_result["longitude"], geocode_result["latitude"]]
-                            }
-                        }
-                        locations.append([geocode_result["latitude"], geocode_result["longitude"]])
-                        print(locations)
-                        print(feature, "点位数据")
-                        features.append(feature)                        
-                        print(features)
+                new_data_list = [{item['event_title']: {key: value for key, value in item.items() if key != 'event_title'}} for item in geo_info_list]
+                print(new_data_list)
+                print(type(new_data_list))
+                json_geoinfo_data = {
+                    '事件列表': {list(item.keys())[0]: list(item.values())[0] for item in new_data_list}
+                }
+                print(json_geoinfo_data)
             except Exception as e:
                 print(e)
                 return [
@@ -396,16 +507,143 @@ def parse_button(nClicks, lastUploadTaskRecord):
                     fac.AntdMessage(
                     content=f'解析失败！{e}',
                     duration=2,
-                    type='warning')
+                    type='warning'),
+                    dash.no_update
                 ]
             return [
                 False, 
                 fac.AntdMessage(
                 content='解析成功！',
                 duration=2,
-                type='success')
+                type='success'),
+                json_geoinfo_data
             ]
     return dash.no_update
+
+@app.callback(
+    Output('mapinfo-store', 'data'),
+    Input('json-geoinfo-viewer', 'data')
+)
+def updata_map_info(geoinfo):
+
+    return geoinfo
+
+@app.callback(
+    [Output('geojson-store', 'data'),
+     Output('start-map-button', 'loading'), 
+     Output('map-container', 'children'), 
+     ],
+    Input('start-map-button', 'nClicks'),
+    State('mapinfo-store', 'data'),
+    prevent_initial_call=True
+)
+def updata_map(nClicks, mapinfo):
+    if nClicks: 
+        features = []
+        for key, info in mapinfo['事件列表'].items():
+            time.sleep(3)
+            print(info)
+            print(type(info))
+            geocode_result = geocode_utils.geocode(info["address"])
+            print('坐标为:', info["address"], geocode_result)
+            if 'error' not in geocode_result:
+                feature = {
+                    "type": "Feature",
+                    "properties": {
+                        "description": {
+                            "title": key,
+                            "type": info["event_type"],
+                            "content": info["event_content"],
+                            "keys": info["keys"],
+                        }
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [geocode_result["longitude"], geocode_result["latitude"]]
+                    }
+                }
+                print(feature, "点位数据")
+                features.append(feature)
+        geojson = {
+            "type": "FeatureCollection",
+            "features": features
+        }
+        locations = []
+        marklist = []
+        for feature in geojson["features"]:
+            coords = feature["geometry"]["coordinates"]
+            locations.append([coords[1], coords[0]])         
+            mark = flc.LeafletMarker(
+                flc.LeafletPopup(
+                    fac.AntdSpace(
+                        [
+                            fac.AntdText(
+                                feature["properties"]["description"]["title"],
+                                italic=True
+                            ),
+                            fac.AntdText(
+                                feature["properties"]["description"]["type"],
+                                italic=True
+                            ),
+                            fac.AntdText(
+                                feature["properties"]["description"]["content"],
+                                italic=True
+                            ),
+                            fac.AntdText(
+                                feature["properties"]["description"]["keys"],
+                                italic=True
+                            ),
+                        ],
+                        direction='vertical'
+                    ),
+                    closeButton=True
+                ),
+                position={
+                    'lng': coords[0],
+                    'lat': coords[1]
+                },
+            )
+            marklist.append(mark)
+        chidren = [
+            # 添加瓦片底图
+            flc.LeafletTileLayer(
+                id='tile-layer',
+                url='https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+            ),
+            # flc.LeafletFullscreenControl(
+            # ),            
+            # flc.LeafletGeoJSON(
+            #     data=geojson
+            # ),
+            flc.LeafletFeatureGroup(marklist),
+            flc.LeafletPolyline(
+                positions=locations,
+                # arrowheads=True
+            ),                                    
+        ]
+        return [
+            geojson,
+            False, 
+            chidren
+        ]
+
+
+@app.callback(
+    Output('tile-layer', 'url'),
+    Input('tile-select', 'selectedUrl')
+)
+def change_tile_layer(selectedUrl):
+
+    return selectedUrl
+
+# @app.callback(
+#     [Output('tile-layer', 'url'),
+#      Output('tile-layer', 'key')],
+#     Input('tile-select', 'selectedUrl')
+# )
+# def change_tile_layer(selectedUrl):
+
+#     return [selectedUrl, str(uuid.uuid4())]
 
 
 # 左侧面板折叠回调，使用浏览器端回调提升交互顺畅性
