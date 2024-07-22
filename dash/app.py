@@ -111,18 +111,30 @@ app.layout = html.Div(
                             id='tile-layer',
                             url='https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
                         ),
-                        # flc.LeafletFullscreenControl(
-                        # ),                        
+                        flc.LeafletFullscreenControl(
+                        ),                        
                     ],
                     id='map-container',
                     # zoomControl=True,  # 隐藏自带的放大缩小控件
-                    # editToolbar=True,
+                    editToolbar=True,
+                    # 关闭其他无关地图编辑功能
+                    editToolbarControlsOptions={
+                        'drawMarker': False,
+                        'drawCircleMarker': False,
+                        'drawPolyline': False,
+                        'drawRectangle': False,
+                        'drawPolygon': False,
+                        'drawCircle': False,
+                        'drawText': False,
+                        'removalMode': False,
+                        'rotateMode': False
+                    },                    
                     style={
                         'position': 'absolute',
-                        'width': 'calc(100vw - 800px)',
-                        'height': 'calc(100vh - 64px)',
+                        'width': 'calc(100vw - 810px)',
+                        'height': 'calc(100vh - 74px)',
                         # 'top': 64,
-                        'left': 400,                        
+                        'left': 410,                        
                     }
                 ),
                 
@@ -135,6 +147,12 @@ app.layout = html.Div(
                     urls=[
                         {
                             'url': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                        },
+                        {
+                            'url': 'https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
+                        },
+                        {
+                            'url': 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
                         },
                         {
                             'url': 'https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
@@ -175,7 +193,7 @@ app.layout = html.Div(
                     style={
                         'position': 'absolute',
                         'width': 'calc(100vw - 400px)',
-                        'height': 'calc(100vh - 64px)',
+                        'height': 'calc(100vh - 74px)',
                         # 'top': 64,
                         # 'right': 400,                        
                     }                    
@@ -322,7 +340,7 @@ app.layout = html.Div(
                             style={
                                 'position': 'absolute',
                                 'top': 0,
-                                'left': 'calc(100% + 10px)'
+                                'left': 'calc(100% + 60px)'
                             }
                         )
                     ],
@@ -383,7 +401,7 @@ app.layout = html.Div(
                                     deletable=True,
                                     style={
                                         'padding': '10px',
-                                        'maxHeight': '700px',
+                                        'maxHeight': '600px',
                                         'overflow': 'auto',
                                         'background': 'rgba(255, 255, 255, 0.8)',
                                     }                                  
@@ -602,6 +620,7 @@ def updata_map(nClicks, mapinfo):
                     'lng': coords[0],
                     'lat': coords[1]
                 },
+                editable=True
             )
             marklist.append(mark)
         chidren = [
@@ -610,14 +629,15 @@ def updata_map(nClicks, mapinfo):
                 id='tile-layer',
                 url='https://tiles1.geovisearth.com/base/v1/vec/{z}/{x}/{y}?format=png&tmsIds=w&token=4524e0daf0879dc44f91fed17fd225466c3809fa3961deba2057ac5e5a710be3'
             ),
-            # flc.LeafletFullscreenControl(
-            # ),            
+            flc.LeafletFullscreenControl(
+            ),            
             # flc.LeafletGeoJSON(
             #     data=geojson
             # ),
             flc.LeafletFeatureGroup(marklist),
             flc.LeafletPolyline(
                 positions=locations,
+                editable=True
                 # arrowheads=True
             ),                                    
         ]
